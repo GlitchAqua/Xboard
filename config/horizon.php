@@ -172,7 +172,7 @@ return [
         'production' => [
             'data-pipeline' => [
                 'connection' => 'redis',
-                'queue' => ['traffic_fetch', 'stat', 'user_alive_sync'],
+                'queue' => ['traffic_fetch', 'stat', 'user_alive_sync', 'usage_billing'],
                 'balance' => 'auto',
                 'autoScalingStrategy' => 'time',
                 'minProcesses' => 1,

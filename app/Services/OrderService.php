@@ -9,6 +9,7 @@ use App\Models\Plan;
 use App\Models\TrafficResetLog;
 use App\Models\User;
 use App\Services\Plugin\HookManager;
+use App\Models\BalanceLog;
 use App\Utils\Helper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -95,6 +96,13 @@ class OrderService
     public function open(): void
     {
         $order = $this->order;
+
+        // 充值订单: 直接入账余额
+        if ((int) $order->type === Order::TYPE_RECHARGE) {
+            $this->handleRecharge($order);
+            return;
+        }
+
         $plan = Plan::find($order->plan_id);
 
         HookManager::call('order.open.before', $order);
@@ -425,5 +433,56 @@ class OrderService
             $this->order->balance_amount = $user->balance;
             $this->order->total_amount = $this->order->total_amount - $user->balance;
         }
+    }
+
+    /**
+     * 创建充值订单
+     */
+    public static function createRechargeOrder(User $user, int $amount): Order
+    {
+        if ($amount < 100) {
+            throw new ApiException('充值金额最低1元');
+        }
+
+        return DB::transaction(function () use ($user, $amount) {
+            $order = new Order([
+                'user_id' => $user->id,
+                'plan_id' => 0,
+                'period' => 'recharge',
+                'trade_no' => Helper::generateOrderNo(),
+                'total_amount' => $amount,
+                'type' => Order::TYPE_RECHARGE,
+            ]);
+
+            if (!$order->save()) {
+                throw new ApiException('创建充值订单失败');
+            }
+
+            return $order;
+        });
+    }
+
+    /**
+     * 处理充值订单开通
+     */
+    private function handleRecharge(Order $order): void
+    {
+        DB::transaction(function () use ($order) {
+            $balanceService = app(BalanceService::class);
+            $rechargeAmount = $order->total_amount + ($order->balance_amount ?? 0);
+
+            $balanceService->credit(
+                $order->user_id,
+                $rechargeAmount,
+                BalanceLog::TYPE_RECHARGE,
+                "余额充值",
+                $order->trade_no
+            );
+
+            $order->status = Order::STATUS_COMPLETED;
+            $order->save();
+        });
+
+        HookManager::call('order.open.after', $order);
     }
 }

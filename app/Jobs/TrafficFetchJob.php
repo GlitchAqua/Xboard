@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\User;
+use App\Services\UsageBillingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -46,6 +47,11 @@ class TrafficFetchJob implements ShouldQueue
 
         if (!empty($userIds)) {
             Redis::sadd('traffic:pending_check', ...$userIds);
+        }
+
+        // 按量计费模式: 对流量进行扣费
+        if (UsageBillingService::isEnabled()) {
+            UsageBillingJob::dispatch($this->data, $this->server['rate'] ?? 1.0);
         }
     }
 }

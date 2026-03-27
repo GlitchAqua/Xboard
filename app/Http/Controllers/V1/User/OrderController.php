@@ -60,17 +60,25 @@ class OrderController extends Controller
 
     public function save(OrderSave $request)
     {
-        $request->validate([
-            'plan_id' => 'required|exists:App\Models\Plan,id',
-            'period' => 'required|string'
-        ]);
-
         $user = User::findOrFail($request->user()->id);
         $userService = app(UserService::class);
 
         if ($userService->isNotCompleteOrderByUserId($user->id)) {
             throw new ApiException(__('You have an unpaid or pending order, please try again later or cancel it'));
         }
+
+        // 充值订单
+        if ($request->input('type') === 'recharge') {
+            $request->validate(['amount' => 'required|integer|min:100']);
+            $order = OrderService::createRechargeOrder($user, $request->input('amount'));
+            return $this->success($order->trade_no);
+        }
+
+        // 订阅订单
+        $request->validate([
+            'plan_id' => 'required|exists:App\Models\Plan,id',
+            'period' => 'required|string'
+        ]);
 
         $plan = Plan::findOrFail($request->input('plan_id'));
         $planService = new PlanService($plan);

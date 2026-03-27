@@ -112,7 +112,12 @@ class ConfigSave extends FormRequest
         'subscribe_template_clashmeta' => 'nullable',
         'subscribe_template_stash' => 'nullable',
         'subscribe_template_surge' => 'nullable',
-        'subscribe_template_surfboard' => 'nullable'
+        'subscribe_template_surfboard' => 'nullable',
+        // billing (按量计费)
+        'billing_mode' => 'in:subscription,usage',
+        'usage_price_per_gb' => 'integer|min:1',
+        'usage_min_balance' => 'integer|min:0',
+        'usage_low_balance_threshold' => 'integer|min:0'
     ];
     /**
      * Get the validation rules that apply to the request.

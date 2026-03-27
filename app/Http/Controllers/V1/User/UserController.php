@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\Auth\LoginService;
 use App\Services\AuthService;
 use App\Services\Plugin\HookManager;
+use App\Services\UsageBillingService;
 use App\Services\UserService;
 use App\Utils\CacheKey;
 use App\Utils\Helper;
@@ -102,6 +103,11 @@ class UserController extends Controller
             return $this->fail([400, __('The user does not exist')]);
         }
         $user['avatar_url'] = 'https://cdn.v2ex.com/gravatar/' . md5($user->email) . '?s=64&d=identicon';
+        $user['billing_mode'] = admin_setting('billing_mode', 'subscription');
+        if (UsageBillingService::isEnabled()) {
+            $fullUser = User::find($request->user()->id);
+            $user['billing_status'] = app(UsageBillingService::class)->getUserBillingStatus($fullUser);
+        }
         return $this->success($user);
     }
 

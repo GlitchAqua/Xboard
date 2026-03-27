@@ -17,6 +17,7 @@ use App\Http\Controllers\V2\Admin\KnowledgeController;
 use App\Http\Controllers\V2\Admin\PaymentController;
 use App\Http\Controllers\V2\Admin\SystemController;
 use App\Http\Controllers\V2\Admin\ThemeController;
+use App\Http\Controllers\V2\Admin\TrafficPackageController;
 use App\Http\Controllers\V2\Admin\TrafficResetController;
 use Illuminate\Contracts\Routing\Registrar;
 
@@ -256,6 +257,16 @@ class AdminRoute
                 $router->get('config', [\App\Http\Controllers\V2\Admin\PluginController::class, 'getConfig']);
                 $router->post('config', [\App\Http\Controllers\V2\Admin\PluginController::class, 'updateConfig']);
                 $router->post('upgrade', [\App\Http\Controllers\V2\Admin\PluginController::class, 'upgrade']);
+            });
+
+            // 流量包管理 (按量计费)
+            $router->group([
+                'prefix' => 'traffic-package'
+            ], function ($router) {
+                $router->get('/fetch', [TrafficPackageController::class, 'fetch']);
+                $router->post('/save', [TrafficPackageController::class, 'save']);
+                $router->post('/update', [TrafficPackageController::class, 'update']);
+                $router->post('/drop', [TrafficPackageController::class, 'drop']);
             });
 
             // 流量重置管理

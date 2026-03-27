@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Routes\V1;
 
+use App\Http\Controllers\V1\User\BalanceController;
 use App\Http\Controllers\V1\User\CommController;
 use App\Http\Controllers\V1\User\CouponController;
 use App\Http\Controllers\V1\User\GiftCardController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\V1\User\ServerController;
 use App\Http\Controllers\V1\User\StatController;
 use App\Http\Controllers\V1\User\TelegramController;
 use App\Http\Controllers\V1\User\TicketController;
+use App\Http\Controllers\V1\User\TrafficPackageController;
 use App\Http\Controllers\V1\User\UserController;
 use Illuminate\Contracts\Routing\Registrar;
 
@@ -78,6 +80,14 @@ class UserRoute
             $router->get('/knowledge/getCategory', [KnowledgeController::class, 'getCategory']);
             // Stat
             $router->get('/stat/getTrafficLog', [StatController::class, 'getTrafficLog']);
+            // Traffic Package (按量计费)
+            $router->get('/traffic-package/fetch', [TrafficPackageController::class, 'fetch']);
+            $router->post('/traffic-package/purchase', [TrafficPackageController::class, 'purchase']);
+            $router->get('/traffic-package/active', [TrafficPackageController::class, 'active']);
+            $router->post('/traffic-package/toggle-renew', [TrafficPackageController::class, 'toggleAutoRenew']);
+            $router->post('/traffic-package/priority', [TrafficPackageController::class, 'updatePriority']);
+            // Balance (余额)
+            $router->get('/balance/logs', [BalanceController::class, 'logs']);
         });
     }
 }
