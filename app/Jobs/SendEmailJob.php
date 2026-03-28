@@ -7,6 +7,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\RateLimitedWithRedis;
 use Illuminate\Queue\SerializesModels;
 
 class SendEmailJob implements ShouldQueue
@@ -14,8 +15,23 @@ class SendEmailJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     protected $params;
 
-    public $tries = 3;
+    public $tries = 0;
+    public $maxExceptions = 3;
     public $timeout = 10;
+
+    public function retryUntil()
+    {
+        return now()->addHours(24);
+    }
+
+    public function middleware(): array
+    {
+        if ($this->queue === 'send_email_mass') {
+            return [(new RateLimitedWithRedis('mass-email'))->releaseAfter(5)];
+        }
+        return [];
+    }
+
     /**
      * Create a new job instance.
      *
@@ -36,7 +52,7 @@ class SendEmailJob implements ShouldQueue
     {
         $mailLog = MailService::sendEmail($this->params);
         if ($mailLog['error']) {
-            $this->release(); //发送失败将触发重试
+            $this->release();
         }
     }
 }

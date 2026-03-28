@@ -66,6 +66,7 @@ class Server extends Model
     public const TYPE_NAIVE = 'naive';
     public const TYPE_HTTP = 'http';
     public const TYPE_MIERU = 'mieru';
+    public const TYPE_SHADOWVEIL = 'shadowveil';
     public const STATUS_OFFLINE = 0;
     public const STATUS_ONLINE_NO_PUSH = 1;
     public const STATUS_ONLINE = 2;
@@ -104,6 +105,7 @@ class Server extends Model
         self::TYPE_NAIVE,
         self::TYPE_HTTP,
         self::TYPE_MIERU,
+        self::TYPE_SHADOWVEIL,
     ];
 
     protected $table = 'v2_server';
@@ -298,6 +300,18 @@ class Server extends Model
             'transport' => ['type' => 'string', 'default' => 'TCP'],
             'traffic_pattern' => ['type' => 'string', 'default' => ''],
             ...self::MULTIPLEX_CONFIGURATION,
+        ],
+        self::TYPE_SHADOWVEIL => [
+            'tls' => [
+                'type' => 'object',
+                'fields' => [
+                    'server_name' => ['type' => 'string', 'default' => null],
+                    'allow_insecure' => ['type' => 'boolean', 'default' => false]
+                ]
+            ],
+            'fallback_site' => ['type' => 'string', 'default' => null],
+            'padding_range' => ['type' => 'array', 'default' => [64, 512]],
+            ...self::UTLS_CONFIGURATION
         ]
     ];
 

@@ -35,10 +35,12 @@ class LoginService
             }
         }
 
-        // 查找用户
-        $user = User::where('email', $email)->first();
+        // 查找用户（支持用户名或邮箱登录）
+        $user = User::where('email', $email)
+            ->orWhere('username', $email)
+            ->first();
         if (!$user) {
-            return [false, [400, __('Incorrect email or password')]];
+            return [false, [400, __('Incorrect username/email or password')]];
         }
 
         // 验证密码

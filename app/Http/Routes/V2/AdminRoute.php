@@ -220,6 +220,8 @@ class AdminRoute
                 $router->get('/getQueueWorkload', [SystemController::class, 'getQueueWorkload']);
                 $router->get('/getQueueMasters', '\\Laravel\\Horizon\\Http\\Controllers\\MasterSupervisorController@index');
                 $router->get('/getHorizonFailedJobs', [SystemController::class, 'getHorizonFailedJobs']);
+                $router->get('/getEmailQueueStats', [SystemController::class, 'getEmailQueueStats']);
+                $router->get('/getEmailLogs', [SystemController::class, 'getEmailLogs']);
                 $router->any('/getAuditLog', [SystemController::class, 'getAuditLog']);
             });
 

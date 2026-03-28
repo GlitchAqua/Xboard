@@ -163,10 +163,11 @@ class UserService
         $user = new User();
 
         // 基本信息
-        $user->email = $data['email'];
+        $user->username = $data['username'] ?? null;
+        $user->email = $data['email'] ?? null;
         $user->password = isset($data['password'])
             ? Hash::make($data['password'])
-            : Hash::make($data['email']);
+            : Hash::make($data['username'] ?? $data['email']);
         $user->uuid = Helper::guid(true);
         $user->token = Helper::guid();
 

@@ -20,6 +20,7 @@ class SingBox extends AbstractProtocol
         Server::TYPE_ANYTLS,
         Server::TYPE_SOCKS,
         Server::TYPE_HTTP,
+        Server::TYPE_SHADOWVEIL,
     ];
     private $config;
     const CUSTOM_TEMPLATE_FILE = 'resources/rules/custom.sing-box.json';
@@ -130,6 +131,10 @@ class SingBox extends AbstractProtocol
             if ($item['type'] === Server::TYPE_HTTP) {
                 $httpConfig = $this->buildHttp($this->user['uuid'], $item);
                 $proxies[] = $httpConfig;
+            }
+            if ($item['type'] === Server::TYPE_SHADOWVEIL) {
+                $svConfig = $this->buildShadowVeil($this->user['uuid'], $item);
+                $proxies[] = $svConfig;
             }
         }
         foreach ($outbounds as &$outbound) {
@@ -619,6 +624,35 @@ class SingBox extends AbstractProtocol
 
         if ($serverName = data_get($protocol_settings, 'tls.server_name')) {
             $array['tls']['server_name'] = $serverName;
+        }
+
+        return $array;
+    }
+
+    protected function buildShadowVeil($password, $server): array
+    {
+        $protocol_settings = data_get($server, 'protocol_settings', []);
+        $tlsConfig = [
+            'enabled' => true,
+            'insecure' => (bool) data_get($protocol_settings, 'tls.allow_insecure', false),
+        ];
+        if ($serverName = data_get($protocol_settings, 'tls.server_name')) {
+            $tlsConfig['server_name'] = $serverName;
+        }
+        $this->appendUtls($tlsConfig, $protocol_settings);
+
+        $array = [
+            'type' => 'shadowveil',
+            'tag' => $server['name'],
+            'server' => $server['host'],
+            'server_port' => $server['port'],
+            'password' => $password,
+            'tls' => $tlsConfig,
+        ];
+
+        if ($paddingRange = data_get($protocol_settings, 'padding_range')) {
+            $array['padding_min'] = (int) ($paddingRange[0] ?? 64);
+            $array['padding_max'] = (int) ($paddingRange[1] ?? 512);
         }
 
         return $array;

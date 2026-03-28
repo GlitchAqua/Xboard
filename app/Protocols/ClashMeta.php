@@ -25,6 +25,7 @@ class ClashMeta extends AbstractProtocol
         Server::TYPE_SOCKS,
         Server::TYPE_HTTP,
         Server::TYPE_MIERU,
+        Server::TYPE_SHADOWVEIL,
     ];
 
     protected $protocolRequirements = [
@@ -111,6 +112,10 @@ class ClashMeta extends AbstractProtocol
             }
             if ($item['type'] === Server::TYPE_MIERU) {
                 array_push($proxy, self::buildMieru($item['password'], $item));
+                array_push($proxies, $item['name']);
+            }
+            if ($item['type'] === Server::TYPE_SHADOWVEIL) {
+                array_push($proxy, self::buildShadowVeil($item['password'], $item));
                 array_push($proxies, $item['name']);
             }
         }
@@ -600,6 +605,33 @@ class ClashMeta extends AbstractProtocol
         // 如果配置了端口范围
         if (isset($server['ports'])) {
             $array['port-range'] = $server['ports'];
+        }
+
+        return $array;
+    }
+
+    public static function buildShadowVeil($password, $server)
+    {
+        $protocol_settings = data_get($server, 'protocol_settings', []);
+        $array = [
+            'name' => $server['name'],
+            'type' => 'shadowveil',
+            'server' => $server['host'],
+            'port' => $server['port'],
+            'password' => $password,
+            'udp' => true,
+        ];
+
+        if ($serverName = data_get($protocol_settings, 'tls.server_name')) {
+            $array['sni'] = $serverName;
+        }
+        $array['skip-cert-verify'] = (bool) data_get($protocol_settings, 'tls.allow_insecure', false);
+
+        self::appendUtls($array, $protocol_settings);
+
+        if ($paddingRange = data_get($protocol_settings, 'padding_range')) {
+            $array['padding-min'] = (int) ($paddingRange[0] ?? 64);
+            $array['padding-max'] = (int) ($paddingRange[1] ?? 512);
         }
 
         return $array;

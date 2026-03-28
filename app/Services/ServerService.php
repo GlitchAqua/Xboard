@@ -241,6 +241,14 @@ class ServerService
                 'traffic_pattern' => $protocolSettings['traffic_pattern'],
                 // 'multiplex' => data_get($protocolSettings, 'multiplex'),
             ],
+            'shadowveil' => [
+                ...$baseConfig,
+                'server_port' => (int) $serverPort,
+                'host' => $host,
+                'server_name' => data_get($protocolSettings, 'tls.server_name'),
+                'fallback_site' => data_get($protocolSettings, 'fallback_site'),
+                'padding_range' => data_get($protocolSettings, 'padding_range', [64, 512]),
+            ],
             default => [],
         };
 

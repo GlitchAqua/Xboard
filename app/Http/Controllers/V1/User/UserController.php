@@ -82,6 +82,7 @@ class UserController extends Controller
     {
         $user = User::where('id', $request->user()->id)
             ->select([
+                'username',
                 'email',
                 'transfer_enable',
                 'last_login_at',
@@ -102,7 +103,7 @@ class UserController extends Controller
         if (!$user) {
             return $this->fail([400, __('The user does not exist')]);
         }
-        $user['avatar_url'] = 'https://cdn.v2ex.com/gravatar/' . md5($user->email) . '?s=64&d=identicon';
+        $user['avatar_url'] = 'https://cdn.v2ex.com/gravatar/' . md5($user->email ?? $user->username ?? '') . '?s=64&d=identicon';
         $user['billing_mode'] = admin_setting('billing_mode', 'subscription');
         if (UsageBillingService::isEnabled()) {
             $fullUser = User::find($request->user()->id);
@@ -217,5 +218,55 @@ class UserController extends Controller
 
         $url = $this->loginService->generateQuickLoginUrl($user, $request->input('redirect'));
         return $this->success($url);
+    }
+
+    public function bindEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email:strict',
+            'email_code' => 'nullable|string',
+        ]);
+
+        $user = $request->user();
+        $email = $request->input('email');
+
+        // 检查邮箱是否已被使用
+        $exists = User::where('email', $email)->where('id', '!=', $user->id)->exists();
+        if ($exists) {
+            return $this->fail([400, __('Email already exists')]);
+        }
+
+        // 绑定邮箱始终需要验证码
+        $emailCode = $request->input('email_code');
+        if (empty($emailCode)) {
+            return $this->fail([422, __('Email verification code cannot be empty')]);
+        }
+        if ((string) Cache::get(CacheKey::get('EMAIL_VERIFY_CODE', $email)) !== (string) $emailCode) {
+            return $this->fail([400, __('Incorrect email verification code')]);
+        }
+        Cache::forget(CacheKey::get('EMAIL_VERIFY_CODE', $email));
+
+        $user->email = $email;
+        if (!$user->save()) {
+            return $this->fail([400, __('bindEmail failed')]);
+        }
+
+        return $this->success(true);
+    }
+
+    public function unbindEmail(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->username) {
+            return $this->fail([400, __('Please set a username before unbinding email')]);
+        }
+
+        $user->email = null;
+        if (!$user->save()) {
+            return $this->fail([400, __('Save failed')]);
+        }
+
+        return $this->success(true);
     }
 }

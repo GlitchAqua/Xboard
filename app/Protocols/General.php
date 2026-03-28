@@ -21,6 +21,7 @@ class General extends AbstractProtocol
         Server::TYPE_SOCKS,
         Server::TYPE_TUIC,
         Server::TYPE_HTTP,
+        Server::TYPE_SHADOWVEIL,
     ];
 
     protected $protocolRequirements = [
@@ -45,6 +46,7 @@ class General extends AbstractProtocol
                 Server::TYPE_SOCKS => self::buildSocks($item['password'], $item),
                 Server::TYPE_TUIC => self::buildTuic($item['password'], $item),
                 Server::TYPE_HTTP => self::buildHttp($item['password'], $item),
+                Server::TYPE_SHADOWVEIL => self::buildShadowVeil($item['password'], $item),
                 default => '',
             };
         }
@@ -417,6 +419,32 @@ class General extends AbstractProtocol
         $credentials = base64_encode("{$password}:{$password}");
         $addr = Helper::wrapIPv6($server['host']);
         return "socks://{$credentials}@{$addr}:{$server['port']}#{$name}\r\n";
+    }
+
+    public static function buildShadowVeil($password, $server)
+    {
+        $protocol_settings = data_get($server, 'protocol_settings', []);
+        $name = rawurlencode($server['name']);
+        $addr = Helper::wrapIPv6($server['host']);
+        $params = [];
+
+        if ($serverName = data_get($protocol_settings, 'tls.server_name')) {
+            $params['sni'] = $serverName;
+        }
+        $params['allowInsecure'] = data_get($protocol_settings, 'tls.allow_insecure') ? '1' : '0';
+
+        if ($fp = Helper::getTlsFingerprint(data_get($protocol_settings, 'utls'))) {
+            $params['fp'] = $fp;
+        }
+
+        if ($paddingRange = data_get($protocol_settings, 'padding_range')) {
+            $params['padding'] = implode('-', $paddingRange);
+        }
+
+        $query = http_build_query($params);
+        $uri = "shadowveil://{$password}@{$addr}:{$server['port']}?{$query}#{$name}";
+        $uri .= "\r\n";
+        return $uri;
     }
 
     public static function buildHttp($password, $server)

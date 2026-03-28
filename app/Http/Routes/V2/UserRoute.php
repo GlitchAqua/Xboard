@@ -15,6 +15,8 @@ class UserRoute
             // User
             $router->get('/resetSecurity', [UserController::class, 'resetSecurity']);
             $router->get('/info', [UserController::class, 'info']);
+            $router->post('/bindEmail', [UserController::class, 'bindEmail']);
+            $router->post('/unbindEmail', [UserController::class, 'unbindEmail']);
         });
     }
 }

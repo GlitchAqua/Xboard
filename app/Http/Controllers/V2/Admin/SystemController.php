@@ -4,9 +4,11 @@ namespace App\Http\Controllers\V2\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminAuditLog;
+use App\Models\MailLog;
 use App\Utils\CacheKey;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Queue;
 use Laravel\Horizon\Contracts\JobRepository;
 use Laravel\Horizon\Contracts\MasterSupervisorRepository;
 use Laravel\Horizon\Contracts\MetricsRepository;
@@ -118,6 +120,55 @@ class SystemController extends Controller
         $res = $builder->forPage($current, $pageSize)->get();
 
         return response(['data' => $res, 'total' => $total]);
+    }
+
+    public function getEmailQueueStats()
+    {
+        $todayStart = strtotime('today');
+
+        $data = [
+            'pending_transactional' => Queue::size('send_email'),
+            'pending_mass' => Queue::size('send_email_mass'),
+            'sent_today' => MailLog::where('created_at', '>=', $todayStart)->whereNull('error')->count(),
+            'failed_today' => MailLog::where('created_at', '>=', $todayStart)->whereNotNull('error')->count(),
+            'sent_total' => MailLog::whereNull('error')->count(),
+            'failed_total' => MailLog::whereNotNull('error')->count(),
+            'rate_limit' => 30,
+        ];
+
+        return $this->success($data);
+    }
+
+    public function getEmailLogs(Request $request)
+    {
+        $current = max(1, (int) $request->input('current', 1));
+        $pageSize = max(10, (int) $request->input('page_size', 20));
+
+        $builder = MailLog::orderBy('id', 'DESC');
+
+        $status = $request->input('status');
+        if ($status === 'sent') {
+            $builder->whereNull('error');
+        } elseif ($status === 'failed') {
+            $builder->whereNotNull('error');
+        }
+
+        if ($keyword = $request->input('keyword')) {
+            $builder->where(function ($q) use ($keyword) {
+                $q->where('email', 'like', '%' . $keyword . '%')
+                  ->orWhere('subject', 'like', '%' . $keyword . '%');
+            });
+        }
+
+        $total = $builder->count();
+        $res = $builder->forPage($current, $pageSize)->get();
+
+        return response()->json([
+            'data' => $res,
+            'total' => $total,
+            'current' => $current,
+            'page_size' => $pageSize,
+        ]);
     }
 
     public function getHorizonFailedJobs(Request $request, JobRepository $jobRepository)

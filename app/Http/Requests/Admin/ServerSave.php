@@ -99,6 +99,14 @@ class ServerSave extends FormRequest
             'alpn' => 'nullable|string',
             'padding_scheme' => 'nullable|array',
         ],
+        'shadowveil' => [
+            'tls' => 'nullable|array',
+            'tls.server_name' => 'nullable|string',
+            'tls.allow_insecure' => 'nullable|boolean',
+            'fallback_site' => 'nullable|string',
+            'padding_range' => 'nullable|array',
+            'padding_scheme' => 'nullable|array',
+        ],
     ];
 
     private function getBaseRules(): array
